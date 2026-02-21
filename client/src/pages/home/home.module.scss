@@ -1,0 +1,16 @@
+.tabsNav {
+  width: 100%;
+  ul {
+    padding: 20px;
+    display: flex;
+    column-gap: 20px;
+    li {
+      list-style: none;
+      a {
+        color: #fff;
+        font-size: 19px;
+        text-decoration: none;
+      }
+    }
+  }
+}
