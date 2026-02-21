@@ -1,0 +1,41 @@
+.filters {
+  ul {
+    padding: 0;
+    display: flex;
+    gap: 20px;
+
+    li {
+      list-style: none;
+      color: #fff;
+      font-size: 18px;
+    }
+  }
+}
+.cardContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+  .card {
+    padding: 15px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    text-decoration: none;
+    color: #fff;
+    color: #000;
+    box-shadow: 7px 10px 10px 0px rgba(0, 0, 0, 0.1);
+    .title {
+      font-size: 32px;
+      font-weight: bold;
+    }
+    .description {
+      p {
+        display: -webkit-box;
+        line-clamp: 3;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        text-overflow: ellipsis;
+        overflow: hidden;
+      }
+    }
+  }
+}
