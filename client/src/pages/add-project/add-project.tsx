@@ -1,11 +1,14 @@
 import type { NewProject } from "../../types/models";
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { useCreateProject } from "../../hooks/useProject";
 type CustomLink = NonNullable<NewProject["links"]>[number] & {
   id: string;
   copied: boolean;
 };
-type Colleague = NonNullable<NewProject["colleagues"]>[number] & { id: string };
+type Colleague = NonNullable<NewProject["colleagues"]>[number] & {
+  id: string;
+};
 type Domain = NonNullable<NewProject["domains"]>[number];
 type SingleClient = NonNullable<NewProject["clients"]>[number];
 
@@ -26,6 +29,7 @@ export default function AddProject() {
   const [currentClient, setCurrentClient] = useState<SingleClient>();
   const [clients, setClients] = useState<NewProject["clients"]>([]);
   const navigate = useNavigate();
+  const mutation = useCreateProject();
 
   const updateCurrentLink = (e: React.ChangeEvent<HTMLInputElement>) => {
     const target = e.target;
@@ -292,20 +296,40 @@ export default function AddProject() {
     }
   };
 
-  const onFormSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
+  const onFormSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     const targetForm = e.target;
+    const properLinks: NewProject["links"] = [];
+    links.forEach((link) => {
+      properLinks.push({
+        name: link.name,
+        url: link.url,
+      });
+    });
+    const properColleagues: NewProject["colleagues"] = [];
+    colleagues.forEach((colleague) => {
+      properColleagues.push({
+        role: colleague.role,
+        name: colleague.name,
+        email: colleague.email,
+      });
+    });
     const formData: NewProject = {
       title: targetForm.projectTitle.value,
       description: targetForm.description.value,
-      links: links,
-      colleagues: colleagues,
+      links: properLinks,
+      colleagues: properColleagues,
       clients: clients,
       domains: environments,
       deadline: new Date(targetForm.deadline.value),
     };
-    console.log(formData);
-    navigate("/");
+    try {
+      await mutation.mutateAsync(formData);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      navigate("/");
+    }
   };
 
   return (

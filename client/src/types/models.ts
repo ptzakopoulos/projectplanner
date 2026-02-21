@@ -28,4 +28,6 @@ type NewProject = {
   deadline?: Date;
 };
 
-export type { NewProject };
+type MyProject = NewProject & { _id: string };
+
+export type { NewProject, MyProject };
