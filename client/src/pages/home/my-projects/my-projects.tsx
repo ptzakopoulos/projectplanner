@@ -1,39 +1,10 @@
-import { useMyProjects } from "../../../hooks/useProject";
-import { Link } from "react-router";
+import { useMyProjects, useDeleteProject } from "../../../hooks/useProject";
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import STYLES from "./my-projects.module.scss";
 
 export default function MyProjects() {
-  // const projectData = [
-  //   {
-  //     id: "1",
-  //     title: "Project 1",
-  //     description:
-  //       "Lorem ipsum, dolor sit amet consectetur adipisicing elit. Numquam hic commodi consequatur quo corporis in alias. Laboriosam vero voluptatibus eveniet eos molestiae, rerum error repellat praesentium expedita, libero, illo exercitationem accusantium sapiente ducimus blanditiis delectus eius hic similique animi vitae.",
-  //     deadline: new Date(),
-  //   },
-  //   {
-  //     id: "2",
-  //     title: "Project 2",
-  //     description:
-  //       "Lorem ipsum, dolor sit amet consectetur adipisicing elit. Numquam hic commodi consequatur quo corporis in alias. Laboriosam vero voluptatibus eveniet eos molestiae, rerum error repellat praesentium expedita, libero, illo exercitationem accusantium sapiente ducimus blanditiis delectus eius hic similique animi vitae.",
-  //     deadline: new Date(),
-  //   },
-  //   {
-  //     id: "3",
-  //     title: "Project 3",
-  //     description:
-  //       "Lorem ipsum, dolor sit amet consectetur adipisicing elit. Numquam hic commodi consequatur quo corporis in alias. Laboriosam vero voluptatibus eveniet eos molestiae, rerum error repellat praesentium expedita, libero, illo exercitationem accusantium sapiente ducimus blanditiis delectus eius hic similique animi vitae.",
-  //     deadline: new Date(),
-  //   },
-  //   {
-  //     id: "4",
-  //     title: "Project 4",
-  //     description:
-  //       "Lorem ipsum, dolor sit amet consectetur adipisicing elit. Numquam hic commodi consequatur quo corporis in alias. Laboriosam vero voluptatibus eveniet eos molestiae, rerum error repellat praesentium expedita, libero, illo exercitationem accusantium sapiente ducimus blanditiis delectus eius hic similique animi vitae.",
-  //     deadline: new Date(),
-  //   },
-  // ];
+  const mutation = useDeleteProject();
   const filters = [
     {
       title: "Name",
@@ -85,6 +56,11 @@ export default function MyProjects() {
     });
   };
 
+  const deleteProject = async (id: string) => {
+    const res = await mutation.mutateAsync(id);
+    console.log(res);
+  };
+
   return (
     <>
       <div className={STYLES.filters}>
@@ -120,12 +96,22 @@ export default function MyProjects() {
               to={`/project/${project?._id}`}
               className={STYLES.card}
             >
-              <div className={STYLES.title}>{project.title}</div>
-              <div className={STYLES.description}>
-                <p>{project.description}</p>
-              </div>
-              <div className={STYLES.description}>
-                <span>{project.deadline?.toLocaleString()}</span>
+              <div>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    deleteProject(project._id);
+                  }}
+                >
+                  Delete
+                </button>
+                <div className={STYLES.title}>{project.title}</div>
+                <div className={STYLES.description}>
+                  <p>{project.description}</p>
+                </div>
+                <div className={STYLES.description}>
+                  <span>{project.deadline?.toLocaleString()}</span>
+                </div>
               </div>
             </Link>
           );

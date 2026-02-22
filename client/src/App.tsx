@@ -9,19 +9,21 @@ import MyColleagues from "./pages/home/my-colleagues/my-colleagues";
 import SingleProject from "./pages/single-project/single-project";
 import NotFound from "./pages/404/404";
 import MyClients from "./pages/home/my-clients/my-clients";
-
+import Login from "./pages/login/login";
 function App() {
   return (
     <Routes>
       <Route element={<MasterLayout />}>
         <Route path="/" element={<Home />}>
           <Route index element={<MyProjects />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/my-projects" element={<MyProjects />} />
           <Route path="/my-colleagues" element={<MyColleagues />} />
           <Route path="/my-clients" element={<MyClients />} />
         </Route>
         <Route path="/new-project" element={<AddProject />} />
-        <Route path="/project/:id" element={<SingleProject />} />
+        <Route path="/project/:projectId" element={<SingleProject />} />
+        <Route path="/project/edit/:projectId" element={<AddProject />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

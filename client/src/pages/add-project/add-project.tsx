@@ -1,7 +1,11 @@
-import type { NewProject } from "../../types/models";
-import { useState } from "react";
-import { useNavigate } from "react-router";
-import { useCreateProject } from "../../hooks/useProject";
+import type { NewProject, MyProject } from "../../types/models";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router";
+import {
+  useCreateProject,
+  useGetProjectById,
+  useEditProject,
+} from "../../hooks/useProject";
 type CustomLink = NonNullable<NewProject["links"]>[number] & {
   id: string;
   copied: boolean;
@@ -29,7 +33,76 @@ export default function AddProject() {
   const [currentClient, setCurrentClient] = useState<SingleClient>();
   const [clients, setClients] = useState<NewProject["clients"]>([]);
   const navigate = useNavigate();
-  const mutation = useCreateProject();
+  const createProjectMutation = useCreateProject();
+  const editrojectMutation = useEditProject();
+  const { projectId } = useParams<{ projectId: string }>();
+  const {
+    data: projectData,
+    isLoading,
+    isError,
+    error,
+  } = useGetProjectById(projectId ?? "");
+  const [title, setTitle] = useState(projectData?.title ?? "");
+  const [description, setDescription] = useState(
+    projectData?.description ?? "",
+  );
+  const [date, setdate] = useState(projectData?.deadline ?? "");
+  console.log(isLoading);
+  console.log(isError);
+  console.log(error);
+
+  useEffect(() => {
+    const setEditProjectValues = () => {
+      setLinks(() => {
+        const customLinks: CustomLink[] = [];
+        projectData?.links?.forEach((link, i) => {
+          customLinks.push({
+            id: `link-${i}`,
+            name: link.name,
+            url: link.url,
+            copied: false,
+          });
+        });
+        return customLinks;
+      });
+      setColleagues(() => {
+        const customColleagues: Colleague[] = [];
+        projectData?.colleagues?.forEach((colleague, i) => {
+          customColleagues.push({
+            id: `colleague-${i}`,
+            role: colleague.role,
+            name: colleague.name,
+            email: colleague.email,
+          });
+        });
+        return customColleagues;
+      });
+      setEnvironments(() => {
+        const dommains: Domain[] = [];
+        projectData?.domains?.forEach((domain) => {
+          dommains.push({
+            name: domain.name,
+            url: domain.url,
+            username: domain.username,
+            password: domain.password,
+          });
+        });
+        return dommains;
+      });
+      setClients(() => {
+        const clients: SingleClient[] = [];
+        projectData?.clients?.forEach((client) => {
+          clients.push({
+            icon: client.icon,
+            name: client.name,
+            email: client.email,
+          });
+        });
+        return clients;
+      });
+    };
+    setEditProjectValues();
+  }, [projectData]);
 
   const updateCurrentLink = (e: React.ChangeEvent<HTMLInputElement>) => {
     const target = e.target;
@@ -315,8 +388,8 @@ export default function AddProject() {
       });
     });
     const formData: NewProject = {
-      title: targetForm.projectTitle.value,
-      description: targetForm.description.value,
+      title: title,
+      description: description,
       links: properLinks,
       colleagues: properColleagues,
       clients: clients,
@@ -324,11 +397,20 @@ export default function AddProject() {
       deadline: new Date(targetForm.deadline.value),
     };
     try {
-      await mutation.mutateAsync(formData);
+      if (projectData) {
+        const editFormData: MyProject = {
+          _id: projectData._id,
+          ...formData,
+        };
+        const res = await editrojectMutation.mutateAsync(editFormData);
+        console.log(res);
+        return navigate(`/project/${projectData._id}`);
+      }
+      const res = await createProjectMutation.mutateAsync(formData);
+      console.log(res);
+      return navigate("/");
     } catch (err) {
       console.error(err);
-    } finally {
-      navigate("/");
     }
   };
 
@@ -339,11 +421,22 @@ export default function AddProject() {
       <form onSubmit={onFormSubmit}>
         <div className="input-block">
           <label htmlFor="projectTitle">Project Title</label>
-          <input type="text" name="projectTitle" id="projectTitle" />
+          <input
+            type="text"
+            name="projectTitle"
+            id="projectTitle"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
         </div>
         <div className="input-block">
           <label htmlFor="description">Description</label>
-          <textarea name="description" id="description" />
+          <textarea
+            name="description"
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
         </div>
         <div className="input-block">
           <span>Add Link</span>
@@ -627,10 +720,19 @@ export default function AddProject() {
         </div>
         <div className="input-block">
           <label htmlFor="deadline">Deadline</label>
-          <input type="datetime-local" name="deadline" id="deadline" />
+          <input
+            type="datetime-local"
+            name="deadline"
+            id="deadline"
+            value={date?.toLocaleString() ?? ""}
+            onChange={(e) => setdate(e.target.value)}
+          />
         </div>
         <div className="input-block">
-          <input type="submit" value="Add Project" />
+          <input
+            type="submit"
+            value={projectData ? "Save Changes" : "Add Project"}
+          />
         </div>
       </form>
     </>

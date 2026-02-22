@@ -18,7 +18,7 @@ type NewProjectClient = {
   name: string;
   email?: string;
 };
-type NewProject = {
+interface NewProject {
   title: string;
   description?: string;
   links?: NewProjectLink[];
@@ -26,8 +26,10 @@ type NewProject = {
   domains?: NewProjectDomain[];
   clients?: NewProjectClient[];
   deadline?: Date;
-};
+}
 
-type MyProject = NewProject & { _id: string };
+interface MyProject extends NewProject {
+  _id: string;
+}
 
 export type { NewProject, MyProject };

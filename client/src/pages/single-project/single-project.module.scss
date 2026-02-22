@@ -1,0 +1,15 @@
+.projectContainer {
+  color: #000;
+  .input {
+    display: none;
+  }
+
+  .editing {
+    .content {
+      display: none;
+    }
+    .input {
+      display: block;
+    }
+  }
+}
