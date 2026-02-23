@@ -3,7 +3,97 @@
   .input {
     display: none;
   }
+  .projectTitle {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+  }
+  .description {
+    margin-bottom: 15px;
+  }
+  .date {
+    padding: 5px;
+  }
+  .date.green {
+    background-color: green;
+  }
+  .date.yellow {
+    background-color: yellow;
+  }
+  .date.orange {
+    background-color: orange;
+  }
+  .date.red {
+    background-color: red;
+  }
 
+  .listBox {
+    margin-top: 20px;
+
+    .title {
+      margin-bottom: 20px;
+      line-height: 1.4em;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      .icon {
+        // transform: rotate(45deg);
+        font-size: 22px;
+      }
+    }
+    ul {
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+      padding-left: 20px;
+
+      &::before {
+        content: "";
+        width: 2px;
+        height: 90%;
+        background-color: rgba(0, 0, 0, 0.5);
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      li {
+        list-style: none;
+        display: flex;
+        align-items: center;
+        a {
+          display: flex;
+          text-decoration: none;
+          color: unset;
+          align-items: center;
+          gap: 5px;
+        }
+        a:hover {
+          .icon {
+            background-color: black;
+            span {
+              color: white;
+            }
+          }
+        }
+        .icon {
+          width: fit-content;
+          aspect-ratio: 1;
+          padding: 10px;
+          border-radius: 4px;
+          border: 1px solid black;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+      }
+    }
+  }
   .editing {
     .content {
       display: none;

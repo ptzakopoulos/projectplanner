@@ -21,6 +21,10 @@ const ProjectSchema = new Schema({
         type: String,
         required: false,
       },
+      AIIcon: {
+        type: String,
+        required: false,
+      },
     },
   ],
   colleagues: [

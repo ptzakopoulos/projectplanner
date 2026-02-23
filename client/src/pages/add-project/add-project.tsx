@@ -1,17 +1,16 @@
-import type { NewProject, MyProject } from "../../types/models";
+import type { NewProject, MyProject, ColleagueType } from "../../types/models";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   useCreateProject,
   useGetProjectById,
   useEditProject,
+  useGetColleagues,
 } from "../../hooks/useProject";
+import Colleague from "../../components/Colleague";
 type CustomLink = NonNullable<NewProject["links"]>[number] & {
   id: string;
   copied: boolean;
-};
-type Colleague = NonNullable<NewProject["colleagues"]>[number] & {
-  id: string;
 };
 type Domain = NonNullable<NewProject["domains"]>[number];
 type SingleClient = NonNullable<NewProject["clients"]>[number];
@@ -24,9 +23,8 @@ const colleaguePrototype = {
 export default function AddProject() {
   const [links, setLinks] = useState<CustomLink[]>([]);
   const [currentLink, setCurrentLink] = useState<CustomLink>();
-  const [colleagues, setColleagues] = useState<Colleague[]>([]);
-  const [currentColleague, setCurrentColleague] = useState<Colleague>();
-  const [savedColleagues, setSavedColleagues] = useState<Colleague[]>([]);
+  const [colleagues, setColleagues] = useState<ColleagueType[]>([]);
+  const [currentColleague, setCurrentColleague] = useState<ColleagueType>();
   const [currentEnvironment, setCurrentEnvironment] = useState<Domain>();
   const [environments, setEnvironments] = useState<Domain[]>([]);
   const [hasCredentials, setHasCredentials] = useState(false);
@@ -36,20 +34,14 @@ export default function AddProject() {
   const createProjectMutation = useCreateProject();
   const editrojectMutation = useEditProject();
   const { projectId } = useParams<{ projectId: string }>();
-  const {
-    data: projectData,
-    isLoading,
-    isError,
-    error,
-  } = useGetProjectById(projectId ?? "");
+  const { data: projectData } = useGetProjectById(projectId ?? "");
   const [title, setTitle] = useState(projectData?.title ?? "");
   const [description, setDescription] = useState(
     projectData?.description ?? "",
   );
-  const [date, setdate] = useState(projectData?.deadline ?? "");
-  console.log(isLoading);
-  console.log(isError);
-  console.log(error);
+  const [date, setdate] = useState("");
+  const { data: storedColleagues, isLoading: colleaguesLoading } =
+    useGetColleagues();
 
   useEffect(() => {
     const setEditProjectValues = () => {
@@ -61,15 +53,16 @@ export default function AddProject() {
             name: link.name,
             url: link.url,
             copied: false,
+            AIIcon: link.AIIcon,
           });
         });
         return customLinks;
       });
       setColleagues(() => {
-        const customColleagues: Colleague[] = [];
+        const customColleagues: ColleagueType[] = [];
         projectData?.colleagues?.forEach((colleague, i) => {
           customColleagues.push({
-            id: `colleague-${i}`,
+            _id: `colleague-${i}`,
             role: colleague.role,
             name: colleague.name,
             email: colleague.email,
@@ -99,6 +92,15 @@ export default function AddProject() {
           });
         });
         return clients;
+      });
+      setdate(() => {
+        if (!projectData?.deadline) return "";
+        const d = new Date(projectData.deadline);
+        const offset = d.getTimezoneOffset() * 60000;
+        const localISOTime = new Date(d.getTime() - offset)
+          .toISOString()
+          .slice(0, 16);
+        return localISOTime;
       });
     };
     setEditProjectValues();
@@ -165,7 +167,7 @@ export default function AddProject() {
     const value = target.value;
     const id = target.id;
     const newColleague = {
-      id: `c-${Date.now()}`,
+      _id: `c-${Date.now()}`,
       role: currentColleague?.role ?? "",
       name: currentColleague?.name ?? "",
       email: currentColleague?.email ?? "",
@@ -197,7 +199,7 @@ export default function AddProject() {
     ) {
       const isAssigned = colleagues.some(
         (c) =>
-          c.id === currentColleague.id || c.email === currentColleague.email,
+          c._id === currentColleague._id || c.email === currentColleague.email,
       );
       if (isAssigned) return;
       setColleagues((prev) => {
@@ -205,7 +207,7 @@ export default function AddProject() {
       });
       setCurrentColleague(() => {
         return {
-          id: "",
+          _id: "",
           role: "",
           name: "",
           email: "",
@@ -218,11 +220,11 @@ export default function AddProject() {
     const target = e.target;
     const value = target.value;
     if (!value) return;
-    const targetSavedColleague = savedColleagues.find((c) => c.id === value);
+    const targetSavedColleague = storedColleagues?.find((c) => c._id === value);
     if (!targetSavedColleague) return;
     const isAssigned = colleagues.some(
       (c) =>
-        c.id === targetSavedColleague.id ||
+        c._id === targetSavedColleague._id ||
         c.email === targetSavedColleague.email,
     );
     if (isAssigned) return;
@@ -233,19 +235,7 @@ export default function AddProject() {
 
   const deleteColleague = (colleagueId: string) => {
     if (colleagueId && colleagueId.trim() != "") {
-      setColleagues((prev) => prev.filter((c) => c.id !== colleagueId));
-    }
-  };
-
-  const saveColleague = (colleagueEmail: string) => {
-    if (!colleagueEmail)
-      alert("You need to add email in order to save the colleague");
-    const targetColleague = colleagues.filter(
-      (c) => c.email === colleagueEmail,
-    );
-    const isSaved = savedColleagues.some((c) => c.email === colleagueEmail);
-    if (targetColleague.length > 0 && !isSaved) {
-      setSavedColleagues((prev) => [...prev, targetColleague[0]]);
+      setColleagues((prev) => prev.filter((c) => c._id !== colleagueId));
     }
   };
 
@@ -371,17 +361,18 @@ export default function AddProject() {
 
   const onFormSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const targetForm = e.target;
     const properLinks: NewProject["links"] = [];
     links.forEach((link) => {
       properLinks.push({
         name: link.name,
         url: link.url,
+        AIIcon: link.AIIcon,
       });
     });
     const properColleagues: NewProject["colleagues"] = [];
     colleagues.forEach((colleague) => {
       properColleagues.push({
+        _id: colleague._id,
         role: colleague.role,
         name: colleague.name,
         email: colleague.email,
@@ -394,7 +385,7 @@ export default function AddProject() {
       colleagues: properColleagues,
       clients: clients,
       domains: environments,
-      deadline: new Date(targetForm.deadline.value),
+      deadline: new Date(date),
     };
     try {
       if (projectData) {
@@ -503,12 +494,14 @@ export default function AddProject() {
         </div>
         <div className="input-block">
           <span>Asign Colleague</span>
-          <select onChange={addSavedColleague}>
-            <option value="">Saved Colleagues</option>
-            {savedColleagues.map((colleague) => {
-              return <option value={colleague.id}>{colleague.name}</option>;
-            })}
-          </select>
+          {!colleaguesLoading && (
+            <select onChange={addSavedColleague}>
+              <option value="">Stored Colleagues</option>
+              {storedColleagues?.map((colleague) => {
+                return <option value={colleague._id}>{colleague.name}</option>;
+              })}
+            </select>
+          )}
           <div className="flex-box">
             <select
               onChange={updateCurrentColleague}
@@ -558,41 +551,12 @@ export default function AddProject() {
         <div className="input-block">
           <span>Colleagues</span>
           {colleagues.map((colleague) => {
-            const isSaved = savedColleagues.some(
-              (c) => c.email === colleague.email,
-            );
             return (
-              <div key={colleague.id} className="colleague flex-box">
-                <span
-                  title={colleague.role}
-                  className={`role ${colleague.role}`}
-                >
-                  {colleague.role[0].toUpperCase()}
-                </span>
-                <span className="name">{colleague.name}</span>
-                <div className="email">
-                  <a href={"mailto:" + colleague.email}>{colleague.email}</a>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    deleteColleague(colleague.id);
-                  }}
-                >
-                  Delete
-                </button>
-                {!isSaved && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      saveColleague(colleague.email);
-                    }}
-                  >
-                    Save Colleague
-                  </button>
-                )}
-              </div>
+              <Colleague
+                key={colleague._id}
+                colleague={colleague}
+                getId={deleteColleague}
+              />
             );
           })}
         </div>
@@ -704,11 +668,18 @@ export default function AddProject() {
           </div>
         </div>
         <div className="input-block">
-          {clients?.map((client) => {
+          {clients?.map((client, i) => {
             return (
-              <div className="client">
+              <div key={`cl-${i}`} className="client">
                 <div className="flex-box">
-                  <img src={client.icon} alt={client.name} />
+                  <img
+                    src={
+                      client.icon || client.icon !== ""
+                        ? client.icon
+                        : "../../public/images.jpg"
+                    }
+                    alt={client.name}
+                  />
                   <span className="name">{client.name}</span>
                   <div className="email">
                     <a href={`mailto:${client.email}`}>{client.email}</a>
@@ -724,7 +695,7 @@ export default function AddProject() {
             type="datetime-local"
             name="deadline"
             id="deadline"
-            value={date?.toLocaleString() ?? ""}
+            value={date ?? ""}
             onChange={(e) => setdate(e.target.value)}
           />
         </div>

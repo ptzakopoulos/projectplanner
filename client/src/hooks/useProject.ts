@@ -5,10 +5,17 @@ import {
   getProjectById,
   editProject,
   deleteProject,
+  saveColleague,
+  getColleagues,
 } from "../apis/user.api";
+const QUERIES = {
+  myProjects: "myProjects",
+  projectById: "projectById",
+  colleagues: "colleagues",
+};
 export const useMyProjects = () => {
   return useQuery({
-    queryKey: ["myProjects"],
+    queryKey: [QUERIES.myProjects],
     queryFn: getMyProjects,
   });
 };
@@ -18,14 +25,14 @@ export const useCreateProject = () => {
   return useMutation({
     mutationFn: createProject,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["myProjects"] });
+      queryClient.invalidateQueries({ queryKey: [QUERIES.myProjects] });
       console.log("Project was succesfully created!");
     },
   });
 };
 export const useGetProjectById = (id: string) => {
   return useQuery({
-    queryKey: ["projectById", id],
+    queryKey: [QUERIES.projectById, id],
     queryFn: () => getProjectById(id),
     enabled: !!id,
   });
@@ -37,7 +44,7 @@ export const useEditProject = () => {
     mutationFn: editProject,
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["myProjects", "projectById"],
+        queryKey: [QUERIES.myProjects, QUERIES.projectById],
       });
     },
   });
@@ -48,8 +55,25 @@ export const useDeleteProject = () => {
     mutationFn: deleteProject,
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["myProjects"],
+        queryKey: [QUERIES.myProjects],
       });
     },
+  });
+};
+export const useSaveColleague = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: saveColleague,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERIES.colleagues],
+      });
+    },
+  });
+};
+export const useGetColleagues = () => {
+  return useQuery({
+    queryKey: [QUERIES.colleagues],
+    queryFn: getColleagues,
   });
 };

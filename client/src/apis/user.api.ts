@@ -1,4 +1,4 @@
-import type { MyProject, NewProject } from "../types/models";
+import type { MyProject, NewProject, ColleagueType } from "../types/models";
 const protocol = location.origin.split(":")[0];
 const domain = location.origin.split(":")[1];
 const port = 3002;
@@ -8,6 +8,8 @@ const endPoints = {
   getProjectById: "getProjectById",
   editProject: "editProject",
   deleteProject: "deleteProject",
+  saveColleague: "saveColleague",
+  getColleagues: "getColleagues",
 };
 export const getMyProjects = async () => {
   const url = `${protocol}://${domain}:${port}/${endPoints.getMyProjects}`;
@@ -77,6 +79,34 @@ export const deleteProject = async (id: string) => {
     });
     if (!response.ok) throw new Error("status : " + response.status);
     return (await response.json()) as MyProject;
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+};
+export const saveColleague = async (colleague: ColleagueType) => {
+  const url = `${protocol}:${domain}:${port}/${endPoints.saveColleague}`;
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ colleague }),
+    });
+    if (!response.ok) throw new Error("status : " + response.status);
+    return (await response.json()) as MyProject;
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+};
+export const getColleagues = async () => {
+  const url = `${protocol}:${domain}:${port}/${endPoints.getColleagues}`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("status : " + response.status);
+    return (await response.json()) as ColleagueType[];
   } catch (err) {
     console.error(err);
     return null;
