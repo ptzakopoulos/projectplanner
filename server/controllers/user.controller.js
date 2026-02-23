@@ -110,6 +110,7 @@ exports.deleteProject = async (req, res, next) => {
 exports.editProject = async (req, res, next) => {
   const projectId = req.params.id;
   const body = req.body;
+  body.colleagues?.map((colleague) => delete colleague._id);
   try {
     const updatedBody = await setOrUpdateLinkIcons(body);
     const updated = await Project.findByIdAndUpdate(projectId, updatedBody, {

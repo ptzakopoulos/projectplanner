@@ -8,6 +8,7 @@ import {
   useGetColleagues,
 } from "../../hooks/useProject";
 import Colleague from "../../components/Colleague";
+import Button from "../../components/Button";
 type CustomLink = NonNullable<NewProject["links"]>[number] & {
   id: string;
   copied: boolean;
@@ -460,9 +461,9 @@ export default function AddProject() {
               id="link-url"
               placeholder="URL"
             />
-            <button className="add-bt" type="button" onClick={addLink}>
+            <Button type={"styled"} onClick={addLink}>
               Add
-            </button>
+            </Button>
           </div>
           {links?.map((link) => {
             const pKey = link.id;
@@ -480,14 +481,15 @@ export default function AddProject() {
                     {link.copied ? "check" : "content_copy"}
                   </span>
                 </div>
-                <button
+                <Button
+                  type={"minimal"}
                   onClick={(e: React.MouseEvent) => {
                     e.preventDefault();
                     deleteLink(link.id);
                   }}
                 >
                   Delete
-                </button>
+                </Button>
               </div>
             );
           })}
@@ -543,9 +545,9 @@ export default function AddProject() {
               value={currentColleague?.email ?? ""}
               placeholder="Colleague Email"
             />
-            <button className="add-bt" type="button" onClick={addColleague}>
+            <Button className="add-bt" type={"styled"} onClick={addColleague}>
               Add
-            </button>
+            </Button>
           </div>
         </div>
         <div className="input-block">
@@ -605,9 +607,9 @@ export default function AddProject() {
               />
             </div>
           )}
-          <button onClick={addEnvironment} className="add-bt" type="button">
+          <Button onClick={addEnvironment} className="add-bt" type="styled">
             Add
-          </button>
+          </Button>
         </div>
         <div className="input-block">
           {environments.map((environment, i) => {
@@ -662,9 +664,9 @@ export default function AddProject() {
               placeholder="Client Email"
               value={currentClient?.email ?? ""}
             />
-            <button onClick={addClient} className="add-bt">
+            <Button onClick={addClient} type={"styled"}>
               Add
-            </button>
+            </Button>
           </div>
         </div>
         <div className="input-block">

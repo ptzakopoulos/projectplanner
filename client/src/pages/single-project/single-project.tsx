@@ -4,7 +4,6 @@ import STYLES from "./single-project.module.scss";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import type { MyProject } from "../../types/models";
-import AddButton from "../../components/AddButton";
 import EditButton from "../../components/EditButton";
 import Colleague from "../../components/Colleague";
 export default function SingleProject() {
@@ -52,11 +51,6 @@ export default function SingleProject() {
 
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Error {(error as Error).message}</p>;
-
-  const test = (e: React.MouseEvent<HTMLButtonElement>) => {
-    const target = e.target;
-    console.log(target);
-  };
 
   return (
     <div className={STYLES.projectContainer}>
@@ -133,9 +127,6 @@ export default function SingleProject() {
             );
           })}
         </ul>
-        <AddButton onClick={test} color="blue">
-          + Add Colleague
-        </AddButton>
       </div>
     </div>
   );
