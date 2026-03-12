@@ -1,6 +1,29 @@
 import { Outlet, Link } from "react-router";
 import STYLES from "./style.module.scss";
-export default function MasterLayout() {
+export default function MasterLayout({ token }: { token: string | null }) {
+  if (!token)
+    return (
+      <div className={STYLES.appContainer}>
+        <header className={STYLES.header}>
+          <p>Navigation</p>
+          <br />
+          <nav>
+            <ul>
+              <li>
+                <Link to={"/login"}>Login</Link>
+              </li>
+              <li>
+                <Link to={"/register"}>Register</Link>
+              </li>
+            </ul>
+          </nav>
+        </header>
+        <div className={STYLES.wrapper}>
+          <Outlet />
+        </div>
+      </div>
+    );
+
   return (
     <div className={STYLES.appContainer}>
       <header className={STYLES.header}>
@@ -8,9 +31,6 @@ export default function MasterLayout() {
         <br />
         <nav>
           <ul>
-            <li>
-              <Link to={"/login"}>Login</Link>
-            </li>
             <li>
               <Link to={"/"}>Home</Link>
             </li>
@@ -34,6 +54,9 @@ export default function MasterLayout() {
             </li>
             <li>
               <Link to={"/preferences"}>Preferences</Link>
+            </li>
+            <li>
+              <Link to={"/logout"}>Logout</Link>
             </li>
           </ul>
         </nav>
