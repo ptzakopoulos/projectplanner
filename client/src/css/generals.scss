@@ -1,5 +1,9 @@
 body {
   // background-color: #fff;
+  color: #000;
+}
+li {
+  list-style: none;
 }
 form {
   width: 100%;
@@ -129,6 +133,10 @@ form {
       margin-inline: auto;
       cursor: pointer;
     }
+    input[type="submit"][disabled] {
+      filter: grayscale(1) brightness(3);
+      cursor: not-allowed;
+    }
     input[type="checkbox"] {
       width: fit-content;
       margin: 0;
@@ -183,10 +191,23 @@ form {
       }
     }
   }
+  .request-message {
+    padding: 10px;
+    text-align: center;
+    width: fit-content;
+    margin-inline: auto;
+  }
+  .request-message.success {
+    background-color: rgba(0, 255, 0, 0.5);
+  }
+  .request-message.fail {
+    background-color: rgba(255, 0, 0, 0.5);
+  }
 }
 .colleague {
   align-items: center;
   width: 100%;
+  margin-top: 10px;
   .role {
     flex-shrink: 0;
     color: #fff;
