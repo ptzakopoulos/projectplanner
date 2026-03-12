@@ -16,12 +16,12 @@ export default function SingleProject() {
 
   useEffect(() => {
     const updateProjects = () => {
-      if (data) setProject(data);
+      if (data) setProject(data.data);
     };
 
     const comapreDeadline = () => {
-      if (!data?.deadline) return;
-      const deadline = new Date(data?.deadline).getTime();
+      if (!data?.data.deadline) return;
+      const deadline = new Date(data?.data.deadline).getTime();
       const today = new Date().getTime();
       const difference = deadline - today;
       const hour = 3600000;
