@@ -2,6 +2,16 @@ import type { MyProject, NewProject, ColleagueType } from "../types/models";
 const protocol = location.origin.split(":")[0];
 const domain = location.origin.split(":")[1];
 const port = 3002;
+interface CustomResponse {
+  ok: boolean;
+  message: string;
+}
+interface GetProjectByIdResponse extends CustomResponse {
+  data: MyProject;
+}
+interface GetMyProjectsResponse extends CustomResponse {
+  data: MyProject[];
+}
 const endPoints = {
   createProject: "createProject",
   getMyProjects: "getMyProjects",
@@ -10,105 +20,82 @@ const endPoints = {
   deleteProject: "deleteProject",
   saveColleague: "saveColleague",
   getColleagues: "getColleagues",
+  deleteColleague: "deleteColleague",
 };
-export const getMyProjects = async () => {
-  const url = `${protocol}://${domain}:${port}/${endPoints.getMyProjects}`;
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("status : " + response.status);
-    return (await response.json()) as MyProject[];
-  } catch (err) {
-    console.error(err);
-    return [];
-  }
+type ApiResponse<T> = {
+  ok: boolean;
+  data?: T;
+  message?: string;
+  status?: number;
 };
-export const createProject = async (formData: NewProject) => {
-  const url = `${protocol}://${domain}:${port}/${endPoints.createProject}`;
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData),
-    });
-    if (!response.ok) throw new Error("status : " + response.status);
-    return response.json();
-  } catch (err) {
-    console.error(err);
-    return {};
-  }
-};
-export const getProjectById = async (id: string) => {
-  const url = `${protocol}:${domain}:${port}/${endPoints.getProjectById}/${id}`;
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("status : " + response.status);
-    return (await response.json()) as MyProject;
-  } catch (err) {
-    console.error(err);
-    return null;
-  }
-};
-export const editProject = async (projectData: MyProject) => {
-  const url = `${protocol}:${domain}:${port}/${endPoints.editProject}/${projectData._id}`;
+
+const apiRequest = async <T>(
+  endpoint: string,
+  method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
+  body?: any,
+): Promise<ApiResponse<T>> => {
+  const url = `${protocol}://${domain}:${port}/${endpoint}`;
+  const token = localStorage.getItem("token");
+
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
   try {
     const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(projectData),
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
     });
-    if (!response.ok) throw new Error("status : " + response.status);
-    return (await response.json()) as MyProject;
+
+    const isJson = response.headers
+      .get("content-type")
+      ?.includes("application/json");
+    const data = isJson ? await response.json() : null;
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        status: response.status,
+        message: data?.message || `Error: ${response.statusText}`,
+      };
+    }
+
+    return data;
   } catch (err) {
-    console.error(err);
-    return null;
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : "Network Error",
+    };
   }
 };
-export const deleteProject = async (id: string) => {
-  const url = `${protocol}:${domain}:${port}/${endPoints.deleteProject}`;
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ id: id }),
-    });
-    if (!response.ok) throw new Error("status : " + response.status);
-    return (await response.json()) as MyProject;
-  } catch (err) {
-    console.error(err);
-    return null;
-  }
-};
-export const saveColleague = async (colleague: ColleagueType) => {
-  const url = `${protocol}:${domain}:${port}/${endPoints.saveColleague}`;
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ colleague }),
-    });
-    if (!response.ok) throw new Error("status : " + response.status);
-    return (await response.json()) as MyProject;
-  } catch (err) {
-    console.error(err);
-    return null;
-  }
-};
-export const getColleagues = async () => {
-  const url = `${protocol}:${domain}:${port}/${endPoints.getColleagues}`;
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("status : " + response.status);
-    return (await response.json()) as ColleagueType[];
-  } catch (err) {
-    console.error(err);
-    return null;
-  }
-};
+export const getMyProjects = () =>
+  apiRequest<MyProject[]>(endPoints.getMyProjects);
+
+export const getProjectById = (id: string) =>
+  apiRequest<MyProject>(`${endPoints.getProjectById}/${id}`);
+
+export const createProject = (formData: NewProject) =>
+  apiRequest<MyProject>(endPoints.createProject, "POST", formData);
+
+export const deleteProject = (id: string) =>
+  apiRequest<{ success: boolean }>(endPoints.deleteProject, "POST", { id });
+export const editProject = async (projectData: MyProject) =>
+  apiRequest<{ success: boolean }>(
+    `${endPoints.editProject}/${projectData._id}`,
+    "POST",
+    projectData,
+  );
+export const saveColleague = async (colleague: ColleagueType) =>
+  apiRequest<{ success: boolean }>(endPoints.saveColleague, "POST", {
+    colleague,
+  });
+
+export const getColleagues = async () =>
+  apiRequest<ColleagueType[]>(endPoints.getColleagues);
+
+export const deleteColleague = async (colleagueId: ColleagueType["key"]) =>
+  apiRequest<{ success: boolean }>(endPoints.deleteColleague, "POST", {
+    colleagueId,
+  });
