@@ -1,9 +1,10 @@
 import { useMyProjects, useDeleteProject } from "../../../hooks/useProject";
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import STYLES from "./my-projects.module.scss";
 
 export default function MyProjects() {
+  const navigate = useNavigate();
   const mutation = useDeleteProject();
   const filters = [
     {
@@ -32,27 +33,34 @@ export default function MyProjects() {
       options: ["project 1", "project 2", "project 3", "project 4"],
     },
   ];
-  const { data, isLoading, isError, error } = useMyProjects();
-  const [projects, setProjects] = useState(data);
+  const { data: savedProjects, isLoading, isError, error } = useMyProjects();
+  const [projects, setProjects] = useState(savedProjects?.data);
 
   useEffect(() => {
     const updateProjects = () => {
-      setProjects(data);
+      if (savedProjects?.status === 401) return navigate("/logout");
+      if (savedProjects?.data) {
+        setProjects(savedProjects?.data);
+      }
     };
     updateProjects();
-  }, [data]);
+  }, [savedProjects, navigate]);
 
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Error {(error as Error).message}</p>;
+  if (isError) navigate("/logout");
 
   const filterProjects = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const target = e.target;
     const option = target.value?.toLowerCase();
     if (!option) {
-      return setProjects(data);
+      return setProjects(savedProjects?.data);
     }
+    console.log(savedProjects);
     setProjects(() => {
-      return data?.filter((prj) => prj.title.toLowerCase() === option);
+      return savedProjects?.data?.filter(
+        (prj) => prj.title.toLowerCase() === option,
+      );
     });
   };
 
@@ -100,7 +108,7 @@ export default function MyProjects() {
                 <button
                   onClick={(e) => {
                     e.preventDefault();
-                    deleteProject(project._id);
+                    if (project._id) deleteProject(project._id);
                   }}
                 >
                   Delete
