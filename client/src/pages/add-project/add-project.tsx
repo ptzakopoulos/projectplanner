@@ -9,8 +9,9 @@ import {
 } from "../../hooks/useProject";
 import Colleague from "../../components/Colleague";
 import Button from "../../components/Button";
+import InputBlock from "../../components/InputBlock";
 type CustomLink = NonNullable<NewProject["links"]>[number] & {
-  id: string;
+  key: string;
   copied: boolean;
 };
 type Domain = NonNullable<NewProject["domains"]>[number];
@@ -36,11 +37,14 @@ export default function AddProject() {
   const editrojectMutation = useEditProject();
   const { projectId } = useParams<{ projectId: string }>();
   const { data: projectData } = useGetProjectById(projectId ?? "");
-  const [title, setTitle] = useState(projectData?.title ?? "");
+  const [title, setTitle] = useState(projectData?.data?.title ?? "");
   const [description, setDescription] = useState(
-    projectData?.description ?? "",
+    projectData?.data?.description ?? "",
   );
   const [date, setdate] = useState("");
+  const [message, setmessage] = useState("");
+  const [messageType, setmessageType] = useState("hidden");
+  const [isSubmitting, setisSubmitting] = useState(false);
   const { data: storedColleagues, isLoading: colleaguesLoading } =
     useGetColleagues();
 
@@ -48,9 +52,9 @@ export default function AddProject() {
     const setEditProjectValues = () => {
       setLinks(() => {
         const customLinks: CustomLink[] = [];
-        projectData?.links?.forEach((link, i) => {
+        projectData?.data?.links?.forEach((link, i) => {
           customLinks.push({
-            id: `link-${i}`,
+            key: `link-${i}`,
             name: link.name,
             url: link.url,
             copied: false,
@@ -61,9 +65,9 @@ export default function AddProject() {
       });
       setColleagues(() => {
         const customColleagues: ColleagueType[] = [];
-        projectData?.colleagues?.forEach((colleague, i) => {
+        projectData?.data?.colleagues?.forEach((colleague, i) => {
           customColleagues.push({
-            _id: `colleague-${i}`,
+            key: `colleague-${i}`,
             role: colleague.role,
             name: colleague.name,
             email: colleague.email,
@@ -73,7 +77,7 @@ export default function AddProject() {
       });
       setEnvironments(() => {
         const dommains: Domain[] = [];
-        projectData?.domains?.forEach((domain) => {
+        projectData?.data?.domains?.forEach((domain) => {
           dommains.push({
             name: domain.name,
             url: domain.url,
@@ -85,7 +89,7 @@ export default function AddProject() {
       });
       setClients(() => {
         const clients: SingleClient[] = [];
-        projectData?.clients?.forEach((client) => {
+        projectData?.data?.clients?.forEach((client) => {
           clients.push({
             icon: client.icon,
             name: client.name,
@@ -95,8 +99,8 @@ export default function AddProject() {
         return clients;
       });
       setdate(() => {
-        if (!projectData?.deadline) return "";
-        const d = new Date(projectData.deadline);
+        if (!projectData?.data?.deadline) return "";
+        const d = new Date(projectData?.data?.deadline);
         const offset = d.getTimezoneOffset() * 60000;
         const localISOTime = new Date(d.getTime() - offset)
           .toISOString()
@@ -114,7 +118,7 @@ export default function AddProject() {
     if (id == "link-url") {
       setCurrentLink(() => {
         return {
-          id: `link-${Date.now()}`,
+          key: `link-${Date.now()}`,
           name: currentLink?.name ?? value,
           url: value,
           copied: false,
@@ -124,7 +128,7 @@ export default function AddProject() {
     if (id == "link-name") {
       setCurrentLink(() => {
         return {
-          id: `link-${Date.now()}`,
+          key: `link-${Date.now()}`,
           name: value,
           url: currentLink?.url ?? "",
           copied: false,
@@ -133,12 +137,13 @@ export default function AddProject() {
     }
   };
 
-  const addLink = () => {
+  const addLink = (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.preventDefault();
     if (currentLink && currentLink.url != "") {
       setLinks((links) => [
         ...links,
         {
-          id: `link-${Date.now()}`,
+          key: `link-${Date.now()}`,
           name: currentLink.name !== "" ? currentLink.name : currentLink.url,
           url: currentLink.url,
           copied: false,
@@ -146,7 +151,7 @@ export default function AddProject() {
       ]);
       setCurrentLink(() => {
         return {
-          id: "",
+          key: "",
           name: "",
           url: "",
           copied: false,
@@ -157,7 +162,7 @@ export default function AddProject() {
 
   const deleteLink = (linkId: string) => {
     if (linkId && linkId.trim() != "") {
-      setLinks((links) => links.filter((l) => l.id !== linkId));
+      setLinks((links) => links.filter((l) => l.key !== linkId));
     }
   };
 
@@ -166,9 +171,10 @@ export default function AddProject() {
   ) => {
     const target = e.target;
     const value = target.value;
+    console.log(value);
     const id = target.id;
     const newColleague = {
-      _id: `c-${Date.now()}`,
+      key: `c-${Date.now()}`,
       role: currentColleague?.role ?? "",
       name: currentColleague?.name ?? "",
       email: currentColleague?.email ?? "",
@@ -189,7 +195,8 @@ export default function AddProject() {
     setCurrentColleague(() => newColleague);
   };
 
-  const addColleague = () => {
+  const addColleague = (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.preventDefault();
     if (
       currentColleague &&
       currentColleague.role &&
@@ -200,7 +207,7 @@ export default function AddProject() {
     ) {
       const isAssigned = colleagues.some(
         (c) =>
-          c._id === currentColleague._id || c.email === currentColleague.email,
+          c.key === currentColleague.key || c.email === currentColleague.email,
       );
       if (isAssigned) return;
       setColleagues((prev) => {
@@ -208,7 +215,7 @@ export default function AddProject() {
       });
       setCurrentColleague(() => {
         return {
-          _id: "",
+          key: "",
           role: "",
           name: "",
           email: "",
@@ -222,10 +229,12 @@ export default function AddProject() {
     const value = target.value;
     if (!value) return;
     const targetSavedColleague = storedColleagues?.find((c) => c._id === value);
+    console.log(value);
+    console.log(storedColleagues);
     if (!targetSavedColleague) return;
     const isAssigned = colleagues.some(
       (c) =>
-        c._id === targetSavedColleague._id ||
+        c.key === targetSavedColleague.key ||
         c.email === targetSavedColleague.email,
     );
     if (isAssigned) return;
@@ -236,7 +245,7 @@ export default function AddProject() {
 
   const deleteColleague = (colleagueId: string) => {
     if (colleagueId && colleagueId.trim() != "") {
-      setColleagues((prev) => prev.filter((c) => c._id !== colleagueId));
+      setColleagues((prev) => prev.filter((c) => c.key !== colleagueId));
     }
   };
 
@@ -246,7 +255,7 @@ export default function AddProject() {
       setLinks((links) => {
         const linksClone = [...links];
         linksClone.map((l) => (l.copied = false));
-        const targetLink = linksClone.find((link) => link.id === linkId);
+        const targetLink = linksClone.find((link) => link.key === linkId);
         if (targetLink) targetLink.copied = true;
         return [...linksClone];
       });
@@ -282,7 +291,8 @@ export default function AddProject() {
     setCurrentEnvironment(() => newEnv);
   };
 
-  const addEnvironment = () => {
+  const addEnvironment = (e: React.MouseEvent) => {
+    e.preventDefault();
     if (
       currentEnvironment &&
       currentEnvironment.name !== "" &&
@@ -362,6 +372,7 @@ export default function AddProject() {
 
   const onFormSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setisSubmitting(true);
     const properLinks: NewProject["links"] = [];
     links.forEach((link) => {
       properLinks.push({
@@ -373,7 +384,7 @@ export default function AddProject() {
     const properColleagues: NewProject["colleagues"] = [];
     colleagues.forEach((colleague) => {
       properColleagues.push({
-        _id: colleague._id,
+        key: colleague.key,
         role: colleague.role,
         name: colleague.name,
         email: colleague.email,
@@ -388,85 +399,89 @@ export default function AddProject() {
       domains: environments,
       deadline: new Date(date),
     };
+    console.log(formData);
     try {
       if (projectData) {
         const editFormData: MyProject = {
-          _id: projectData._id,
+          _id: projectData?.data?._id,
           ...formData,
         };
+        console.log(editFormData);
         const res = await editrojectMutation.mutateAsync(editFormData);
         console.log(res);
-        return navigate(`/project/${projectData._id}`);
+        return navigate(`/project/${projectData?.data?._id}`);
       }
       const res = await createProjectMutation.mutateAsync(formData);
-      console.log(res);
-      return navigate("/");
+
+      setmessageType(() => (res.status === 200 ? "success" : "fail"));
+      setmessage(res.message ?? "");
+      if (res.ok) {
+        return navigate("/");
+      }
     } catch (err) {
       console.error(err);
     }
+    setisSubmitting(false);
+    setTimeout(() => {
+      setmessage("");
+    }, 2000);
   };
-
   return (
     <>
       <h1>Create New Project</h1>
 
       <form onSubmit={onFormSubmit}>
-        <div className="input-block">
-          <label htmlFor="projectTitle">Project Title</label>
-          <input
-            type="text"
-            name="projectTitle"
-            id="projectTitle"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </div>
-        <div className="input-block">
-          <label htmlFor="description">Description</label>
-          <textarea
-            name="description"
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
+        <InputBlock
+          name="projectTitle"
+          type="text"
+          label="Project Title"
+          value={title}
+          onChange={(e) => {
+            setTitle(e.target.value);
+          }}
+        />
+        <InputBlock
+          name="description"
+          type="textarea"
+          label="Description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
         <div className="input-block">
           <span>Add Link</span>
           <div className="flex-box">
-            <input
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key.toLowerCase() === "enter") {
-                  e.preventDefault();
-                  addLink();
-                }
-              }}
-              onChange={updateCurrentLink}
-              value={currentLink?.name ?? ""}
-              type="text"
+            <InputBlock
               name="link-name"
-              id="link-name"
-              placeholder="Display Name"
-            />
-            <input
+              type="text"
+              label="Link Title"
+              value={currentLink?.name ?? ""}
+              onChange={(e) => updateCurrentLink(e)}
               onKeyDown={(e: React.KeyboardEvent) => {
                 if (e.key.toLowerCase() === "enter") {
                   e.preventDefault();
-                  addLink();
+                  addLink(e);
                 }
               }}
-              onChange={updateCurrentLink}
+            />
+            <InputBlock
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key.toLowerCase() === "enter") {
+                  e.preventDefault();
+                  addLink(e);
+                }
+              }}
+              onChange={(e) => updateCurrentLink(e)}
               value={currentLink?.url ?? ""}
               type="text"
+              label="Link Url"
               name="link-url"
-              id="link-url"
-              placeholder="URL"
             />
             <Button type={"styled"} onClick={addLink}>
               Add
             </Button>
           </div>
           {links?.map((link) => {
-            const pKey = link.id;
+            const pKey = link.key;
             return (
               <div key={pKey} className="link-block">
                 <div className="name">{link.name}</div>
@@ -475,7 +490,7 @@ export default function AddProject() {
                     {link.url}
                   </a>
                   <span
-                    onClick={() => copyOnClipBoard(link.id, link.url)}
+                    onClick={() => copyOnClipBoard(link.key, link.url)}
                     className="material-symbols-outlined"
                   >
                     {link.copied ? "check" : "content_copy"}
@@ -485,7 +500,7 @@ export default function AddProject() {
                   type={"minimal"}
                   onClick={(e: React.MouseEvent) => {
                     e.preventDefault();
-                    deleteLink(link.id);
+                    deleteLink(link.key);
                   }}
                 >
                   Delete
@@ -500,50 +515,46 @@ export default function AddProject() {
             <select onChange={addSavedColleague}>
               <option value="">Stored Colleagues</option>
               {storedColleagues?.map((colleague) => {
-                return <option value={colleague._id}>{colleague.name}</option>;
+                return (
+                  <option key={colleague._id} value={colleague._id}>
+                    {colleague.name}
+                  </option>
+                );
               })}
             </select>
           )}
           <div className="flex-box">
-            <select
-              onChange={updateCurrentColleague}
+            <InputBlock
+              onChange={() => updateCurrentColleague}
               name={colleaguePrototype.role}
-              id={colleaguePrototype.role}
               value={currentColleague?.role ?? ""}
-            >
-              <option value="">--Role--</option>
-              <option value="pm">PM</option>
-              <option value="designer">Designer</option>
-              <option value="frontend">Frontend</option>
-              <option value="backend">Backend</option>
-            </select>
-            <input
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key.toLowerCase() === "enter") {
-                  e.preventDefault();
-                  addColleague();
-                }
-              }}
-              onChange={updateCurrentColleague}
-              type="text"
-              name={colleaguePrototype.name}
-              id={colleaguePrototype.name}
-              value={currentColleague?.name ?? ""}
-              placeholder="Colleague Name"
+              label=""
+              type="select"
+              options={["pm", "designer", "frontend", "backend"]}
             />
-            <input
+            <InputBlock
+              type="text"
               onKeyDown={(e: React.KeyboardEvent) => {
                 if (e.key.toLowerCase() === "enter") {
                   e.preventDefault();
-                  addColleague();
+                  addColleague(e);
                 }
               }}
-              onChange={updateCurrentColleague}
+              onChange={() => updateCurrentColleague}
+              name={colleaguePrototype.name}
+              value={currentColleague?.name ?? ""}
+            />
+            <InputBlock
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key.toLowerCase() === "enter") {
+                  e.preventDefault();
+                  addColleague(e);
+                }
+              }}
+              onChange={() => updateCurrentColleague}
               type="email"
               name={colleaguePrototype.email}
-              id={colleaguePrototype.email}
               value={currentColleague?.email ?? ""}
-              placeholder="Colleague Email"
             />
             <Button className="add-bt" type={"styled"} onClick={addColleague}>
               Add
@@ -555,33 +566,28 @@ export default function AddProject() {
           {colleagues.map((colleague) => {
             return (
               <Colleague
-                key={colleague._id}
+                key={colleague.key}
                 colleague={colleague}
                 getId={deleteColleague}
               />
             );
           })}
         </div>
-        <div className="input-block">
-          <span className="block-title">Environment Domains</span>
-          <div className="flex-box">
-            <input
-              type="text"
-              name="environemt"
-              id="environment"
-              placeholder="Environment Name e.g. Live"
-              value={currentEnvironment?.name ?? ""}
-              onChange={updateCurrentEnvironment}
-            />
-            <input
-              type="text"
-              name="environmentUrl"
-              id="environmentUrl"
-              placeholder="Environment Url"
-              value={currentEnvironment?.url ?? ""}
-              onChange={updateCurrentEnvironment}
-            />
-          </div>
+        <div className="flex-box">
+          <InputBlock
+            type="text"
+            name="environemt"
+            label="Environment Name"
+            value={currentEnvironment?.name ?? ""}
+            onChange={() => updateCurrentEnvironment}
+          />
+          <InputBlock
+            type="text"
+            name="environmentUrl"
+            label="Environment Url"
+            value={currentEnvironment?.url ?? ""}
+            onChange={() => updateCurrentEnvironment}
+          />
           <div className="flex-box">
             <label htmlFor="hasCreds">Has Credentials</label>
             <input
@@ -640,28 +646,25 @@ export default function AddProject() {
                   <img src={currentClient?.icon} alt="Client img" />
                 )}
               </div>
-              <input
-                onChange={updateFileInput}
-                accept="image/png, image/jpg, image/svg, image/avif"
+              <InputBlock
                 type="file"
+                onChange={() => updateFileInput}
+                accept="image/png, image/jpg, image/svg, image/avif"
                 name="clientIcon"
-                id="clientIcon"
               />
             </label>
-            <input
-              onChange={updateCurrentClient}
+            <InputBlock
+              onChange={() => updateCurrentClient}
               type="text"
               name="clientName"
-              id="clientName"
-              placeholder="Client Name"
+              label="Client Name"
               value={currentClient?.name ?? ""}
             />
-            <input
-              onChange={updateCurrentClient}
+            <InputBlock
+              onChange={() => updateCurrentClient}
               type="email"
               name="clientEmail"
-              id="clientEmail"
-              placeholder="Client Email"
+              label="Client Email"
               value={currentClient?.email ?? ""}
             />
             <Button onClick={addClient} type={"styled"}>
@@ -702,11 +705,22 @@ export default function AddProject() {
           />
         </div>
         <div className="input-block">
-          <input
-            type="submit"
-            value={projectData ? "Save Changes" : "Add Project"}
-          />
+          {isSubmitting ? (
+            <input
+              disabled
+              type="submit"
+              value={projectData ? "Save Changes" : "Add Project"}
+            />
+          ) : (
+            <input
+              type="submit"
+              value={projectData ? "Save Changes" : "Add Project"}
+            />
+          )}
         </div>
+        {message !== "" && (
+          <div className={`request-message ${messageType}`}>{message}</div>
+        )}
       </form>
     </>
   );
