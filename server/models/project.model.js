@@ -83,6 +83,10 @@ const ProjectSchema = new Schema({
     type: Date,
     required: true,
   },
+  userId: {
+    type: String,
+    required: true,
+  },
 });
 
 module.exports = mongoose.model("Project", ProjectSchema);
