@@ -4,7 +4,8 @@ type NewProjectLink = {
   AIIcon?: string;
 };
 type ColleagueType = {
-  _id: string;
+  _id?: string;
+  key: string;
   role: string;
   name: string;
   email: string;
@@ -31,7 +32,7 @@ interface NewProject {
 }
 
 interface MyProject extends NewProject {
-  _id: string;
+  _id?: string;
 }
 
 export type { NewProject, MyProject, ColleagueType };
