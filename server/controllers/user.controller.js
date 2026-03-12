@@ -49,36 +49,73 @@ const setOrUpdateLinkIcons = async (body) => {
 };
 exports.createProject = async (req, res, next) => {
   const body = req.body;
-  if (!body) return res.json({ ok: false, message: "Body is emtpy" });
+  const userId = req.userId;
+  if (!userId) return res.status(401).json({ ok: false, message: "No token" });
+  if (!body)
+    return res
+      .status(400)
+      .json({ ok: false, message: "Something went wrong." });
+  if (!body.title || !body.description || !body.deadline)
+    return res
+      .status(400)
+      .json({ ok: false, message: "Required fields are missing." });
   try {
     const updatedBody = await setOrUpdateLinkIcons(body);
-    const newProject = new Project(updatedBody);
+    const newProject = new Project({ ...updatedBody, userId });
     await newProject.save();
-    return res.json({ message: "Project was created succesfully" });
+    return res
+      .status(200)
+      .json({ ok: true, message: "Project was created succesfully" });
   } catch (err) {
-    res.json({ ok: false, message: "Error", error: err });
+    console.log(err);
+    return res
+      .status(500)
+      .json({ ok: false, message: "Something went wrong." });
   }
 };
 exports.getUserProjects = async (req, res, next) => {
-  const userId = req.params.id;
+  const userId = req.userId;
+  if (!userId)
+    return res.status(401).json({ ok: false, message: "Anuthorized action." });
   try {
-    // const user = await User.findById(userId);
-    // if(!user) res.json({ok:false, message: 'User does noy exist.'});
-    // const projects = await Project.find({userId : user.id});
-    // res.json(projects);
-    const projects = await Project.find();
-    res.json(projects);
+    const projects = await Project.find({ userId: userId });
+    if (!projects)
+      return res
+        .status(404)
+        .json({ ok: false, messalge: "No projects found." });
+    if (projects.length == 0)
+      return res
+        .status(200)
+        .json({ ok: true, message: "Empty project list.", data: [] });
+    return res.status(200).json({
+      ok: true,
+      message: "Projects were retrieved succesfully!",
+      data: projects,
+    });
   } catch (err) {
     throw err;
   }
 };
 exports.getProjectById = async (req, res, next) => {
   const projectId = req.params.id;
+  const userId = req.userId;
   try {
     const project = await Project.findById(projectId);
+    if (project.userId !== userId)
+      return res.status(401).json({
+        ok: false,
+        message: "This project does not belong to this user.",
+      });
     if (!project)
-      res.json({ ok: false, message: "Project does not exist", status: 404 });
-    res.json(project);
+      return res.status(404).json({
+        ok: false,
+        message: "Project does not exist",
+      });
+    return res.status(200).json({
+      ok: true,
+      message: "Project was retrieved succesfully!",
+      data: project,
+    });
   } catch (err) {
     throw err;
   }
@@ -86,10 +123,16 @@ exports.getProjectById = async (req, res, next) => {
 exports.deleteProject = async (req, res, next) => {
   const body = req.body;
   if (!body) return res.json({ ok: false, message: "Body not found." });
+  const userId = req.userId;
+  if (!userId)
+    return res
+      .status(401)
+      .json({ ok: false, message: "User should be logged in." });
   const id = body.id;
   if (!id) return res.json({ ok: false, message: "Id not found" });
   try {
-    const deleted = await Project.findByIdAndDelete(id);
+    // const deleted = await Project.findByIdAndDelete(id);
+    const deleted = await Project.findOneAndDelete({ _id: id, userId });
     if (!deleted) {
       return res.status(404).json({
         ok: false,
@@ -110,13 +153,22 @@ exports.deleteProject = async (req, res, next) => {
 exports.editProject = async (req, res, next) => {
   const projectId = req.params.id;
   const body = req.body;
+  const userId = req.userId;
+  if (!userId)
+    return res
+      .status(401)
+      .json({ ok: false, message: "User should be logged in." });
   body.colleagues?.map((colleague) => delete colleague._id);
   try {
     const updatedBody = await setOrUpdateLinkIcons(body);
-    const updated = await Project.findByIdAndUpdate(projectId, updatedBody, {
-      new: true,
-      runValidators: true,
-    });
+    const updated = await Project.findOneAndUpdate(
+      { _id: projectId, userId },
+      updatedBody,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
     if (!updated) {
       return res.status(404).json({ ok: false, message: "Project not found" });
     }
@@ -126,43 +178,82 @@ exports.editProject = async (req, res, next) => {
       project: updated,
     });
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ ok: false, message: err.message });
   }
 };
 exports.saveColleague = async (req, res, next) => {
   const body = req.body;
+  const userId = req.userId;
+  if (!userId)
+    return res
+      .status(401)
+      .json({ ok: false, message: "User should be logged in." });
   const colleague = {
     role: body.colleague.role,
     name: body.colleague.name,
     email: body.colleague.email,
+    userId: userId,
   };
-  console.log(body);
   if (!colleague)
     return res
       .status(404)
       .json({ ok: false, message: "Error, colleague was not found." });
   try {
-    const colleagueExists = await Colleague.findOne({ email: body.email });
-    if (colleagueExists)
+    const colleagueExists = await Colleague.findOne({
+      email: colleague.email,
+      userId: colleague.userId,
+    });
+    if (colleagueExists) {
       return res.status(401).json({
         ok: false,
         message: "Colleague with this email already exists.",
       });
+    }
     const saved = await new Colleague(colleague).save();
+    console.log(saved);
     if (!saved)
       return res.status(500).json({ ok: false, message: "Server error." });
+
     return res
       .status(200)
       .json({ ok: true, message: "Colleague was saved succesfully!" });
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ error: err });
   }
 };
 exports.getColleagues = async (req, res, next) => {
+  const userId = req.userId;
   try {
-    const colleagues = await Colleague.find();
+    const colleagues = await Colleague.find({ userId });
     return res.status(200).json(colleagues);
   } catch (err) {
     return res.status(500).json({ error: err });
+  }
+};
+exports.deleteColleague = async (req, res, next) => {
+  const body = req.body;
+  const userId = req.userId;
+  if (!body) return res.json({ ok: false, message: "Somewthing went wrong." });
+  const colleagueId = body.colleagueId;
+  if (!colleagueId)
+    return res.json({ ok: false, message: "Something went wrong." });
+  try {
+    const targetColleague = await Colleague.findOneAndDelete({
+      _id: colleagueId,
+      userId,
+    });
+    if (!targetColleague)
+      return res
+        .status(404)
+        .json({ ok: false, message: "Colleague was not found." });
+    return res.status(200).json({
+      ok: true,
+      message: "Colleague was succesfully deleted.",
+    });
+  } catch (err) {
+    console.log(err);
+    return res.json({ ok: false, message: err.message });
   }
 };
