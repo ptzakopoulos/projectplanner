@@ -7,6 +7,7 @@ import {
   deleteProject,
   saveColleague,
   getColleagues,
+  deleteColleague,
 } from "../apis/user.api";
 const QUERIES = {
   myProjects: "myProjects",
@@ -75,5 +76,16 @@ export const useGetColleagues = () => {
   return useQuery({
     queryKey: [QUERIES.colleagues],
     queryFn: getColleagues,
+  });
+};
+export const useDeleteColleague = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteColleague,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERIES.colleagues],
+      });
+    },
   });
 };
